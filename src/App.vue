@@ -124,7 +124,11 @@ const handleSubmit = async () => {
 
     // 方案1：当前格式
     subData.append('app_type', formData.value.app_type)
-    subData.append('file', formData.value.file)
+
+    // 只有选择了JMX文件时才添加到FormData
+    if (formData.value.file) {
+      subData.append('file', formData.value.file)
+    }
 
     // 只有选择了CSV文件时才添加到FormData
     if (formData.value.csv_file) {
