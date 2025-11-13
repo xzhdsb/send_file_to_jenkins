@@ -125,7 +125,11 @@ const handleSubmit = async () => {
     // 方案1：当前格式
     subData.append('app_type', formData.value.app_type)
     subData.append('file', formData.value.file)
-    subData.append('csv_file', formData.value.csv_file)
+
+    // 只有选择了CSV文件时才添加到FormData
+    if (formData.value.csv_file) {
+      subData.append('csv_file', formData.value.csv_file)
+    }
 
     const res = await axios.post('https://more-master-walrus.ngrok-free.app/file/upload', subData, {
       headers: {
