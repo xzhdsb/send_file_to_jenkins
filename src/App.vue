@@ -3,11 +3,14 @@ import axios from 'axios'
 import { onMounted, ref } from 'vue'
 
 const fileInputRef = ref(null)
+const csvFileInputRef = ref(null)
 const selectedFileName = ref('')
+const selectedCsvFileName = ref('')
 const isUploading = ref(false)
 const formData = ref({
   app_type: '',
   file: null,
+  csv_file: null,
 })
 
 // 处理文件选择
@@ -45,6 +48,41 @@ const clearFile = () => {
   console.log('File cleared, FormData updated:', formData.value)
 }
 
+// 处理CSV文件选择
+const handleCsvFileChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    if (file.name.endsWith('.csv')) {
+      selectedCsvFileName.value = file.name
+      formData.value.csv_file = file // 绑定文件到 formData
+      console.log('Selected CSV file:', file.name)
+      console.log('FormData updated:', formData.value)
+    } else {
+      alert('请选择 .csv 格式的文件')
+      event.target.value = ''
+      selectedCsvFileName.value = ''
+      formData.value.csv_file = null // 清空 formData 中的文件
+    }
+  }
+}
+
+// 触发CSV文件选择
+const triggerCsvFileSelect = () => {
+  if (csvFileInputRef.value) {
+    csvFileInputRef.value.click()
+  }
+}
+
+// 清除选中的CSV文件
+const clearCsvFile = () => {
+  selectedCsvFileName.value = ''
+  formData.value.csv_file = null // 清空 formData 中的文件
+  if (csvFileInputRef.value) {
+    csvFileInputRef.value.value = ''
+  }
+  console.log('CSV file cleared, FormData updated:', formData.value)
+}
+
 // 处理项目类型选择
 const handleAppTypeChange = () => {
   console.log('App type changed:', formData.value.app_type)
@@ -61,6 +99,7 @@ const handleAppTypeChange = () => {
   }
 }
 
+//发送请求
 const handleSubmit = async () => {
   // 验证表单数据
   if (!formData.value.app_type) {
@@ -68,8 +107,8 @@ const handleSubmit = async () => {
     return
   }
 
-  if (!formData.value.file) {
-    alert('请选择一个 .jmx 文件')
+  if (!formData.value.file && !formData.value.csv_file) {
+    alert('.jmx 文件或 .csv 文件至少选择一个上传')
     return
   }
 
@@ -86,6 +125,7 @@ const handleSubmit = async () => {
     // 方案1：当前格式
     subData.append('app_type', formData.value.app_type)
     subData.append('file', formData.value.file)
+    subData.append('csv_file', formData.value.csv_file)
 
     const res = await axios.post('https://more-master-walrus.ngrok-free.app/file/upload', subData, {
       headers: {
@@ -100,9 +140,8 @@ const handleSubmit = async () => {
     if (res.status === 200) {
       formData.value.app_type = ''
       clearFile()
-      alert(
-        `上传成功！`,
-      )
+      clearCsvFile()
+      alert(`上传成功！`)
     } else {
       throw new Error(`服务器返回状态码: ${res.status}`)
     }
@@ -155,7 +194,8 @@ onMounted(() => {
       <div class="desc">
         <p>1.选择将脚本上传到哪个项目</p>
         <p>2.选择本地jmx脚本上传</p>
-        <p>3.上传后,可前往http://tool.enerjoy.life:8080对应项目下,检查是否上传成功</p>
+        <p>3.选择本地csv数据文件上传</p>
+        <p>4.上传后,可前往http://tool.enerjoy.life:8080对应项目下,检查是否上传成功</p>
       </div>
       <div class="input_wrapper">
         <p>App <span>*</span></p>
@@ -193,6 +233,35 @@ onMounted(() => {
               v-if="selectedFileName"
               class="clear-file"
               @click.stop="clearFile"
+              title="清除文件"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <p class="csv-file-label">CSV文件 <span>*</span></p>
+
+        <!-- CSV文件上传区域 -->
+        <div class="file-upload-container">
+          <input
+            ref="csvFileInputRef"
+            type="file"
+            id="csv-file-input"
+            accept=".csv"
+            @change="handleCsvFileChange"
+            style="display: none"
+          />
+          <div
+            class="file-picker csv-file-picker"
+            :class="{ 'has-file': selectedCsvFileName }"
+            @click="triggerCsvFileSelect"
+          >
+            <span class="file-name" v-if="selectedCsvFileName">{{ selectedCsvFileName }}</span>
+            <button
+              v-if="selectedCsvFileName"
+              class="clear-file"
+              @click.stop="clearCsvFile"
               title="清除文件"
             >
               ✕
@@ -284,7 +353,12 @@ onMounted(() => {
       /* 文件上传样式 */
       .file-upload-container {
         margin-top: 8px;
-        margin-bottom: 46px;
+        margin-bottom: 24px;
+      }
+
+      /* CSV文件标签间距 */
+      .csv-file-label {
+        margin-top: 22px;
       }
 
       .file-picker {
@@ -319,6 +393,10 @@ onMounted(() => {
           color: #999;
           font-size: 14px;
           pointer-events: none;
+        }
+
+        &.csv-file-picker::before {
+          content: '选择 .csv 文件';
         }
 
         &::after {
